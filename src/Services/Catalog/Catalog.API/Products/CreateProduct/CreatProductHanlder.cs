@@ -1,16 +1,11 @@
-﻿using BuildingBlocks.CQRS;
-using Catalog.API.Models;
-using MediatR;
-using System.Windows.Input;
-
-namespace Catalog.API.Products.CreateProduct
+﻿ namespace Catalog.API.Products.CreateProduct
 {
 
     public record CreateProductCommand(string Name, List<string> Category, string Description, string ImageFile, decimal Price)
         : ICommand<CreateProductResult> { }
 
     public record CreateProductResult(Guid Id);
-    internal class CreateProductCommandHandle : ICommandHandler<CreateProductCommand, CreateProductResult>
+    internal class CreateProductCommandHandle(IDocumentSession docSession) : ICommandHandler<CreateProductCommand, CreateProductResult>
     {
         public async Task<CreateProductResult> Handle(CreateProductCommand command, CancellationToken cancellationToken)
         {
@@ -23,8 +18,12 @@ namespace Catalog.API.Products.CreateProduct
                 ImageFile = command.ImageFile,
                 Price = command.Price
             };
+            // Save the product to the database using Marten
 
-          return new CreateProductResult(Guid.NewGuid());
+            docSession.Store(product);
+            await docSession.SaveChangesAsync(cancellationToken);
+
+            return new CreateProductResult(product.Id);
         }
     }
 }
